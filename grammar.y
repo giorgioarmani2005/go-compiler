@@ -8,7 +8,7 @@ extern int yyparse();
 extern FILE* yyin;
 
 void yyerror(const char* s);
-void parsing_failure();
+
 %}
 
 %union {
@@ -17,10 +17,10 @@ void parsing_failure();
     char *str;
 }
 
-%token INT
+%token INT UINT INT8 INT16 INT32 INT64 UINT8 UINT16 UINT32 UINT64
 
 %token NL
-%token PACKAGE FUNC VAR CONST RETURN SEMICOLON IF ELSE FOR BREAK CONTINUE GOTO
+%token PACKAGE FUNC VAR SEMICOLON IF ELSE FOR BREAK CONTINUE
 %token EQ NE LE GE
 %token LAND LOR
 %token ANDNOT LSHIFT RSHIFT
@@ -32,8 +32,7 @@ void parsing_failure();
 %token <dval> NUMBER
 %token <str> NAME
 
-%type <element_count> identifier_list
-%type <element_count> expression_list
+
 
 %%
 
@@ -45,11 +44,12 @@ global_decls
     | global_decl
     | global_decl SEMICOLON global_decls
     ;
+
 global_decl
     : var_decl
-    | const_decl
     | main_decl
     ;
+
 main_decl
     : FUNC NAME '(' ')' block
     ;
@@ -58,72 +58,63 @@ var_decl
     : VAR var_spec
     | VAR '(' var_spec_list ')'
     ;
+
 var_spec_list
     : var_spec
     | var_spec SEMICOLON
     | var_spec SEMICOLON var_spec_list
     ;
+
 var_spec
     : identifier_list type
-    | identifier_list type '=' expression_list  { if ($1 != $4) parsing_failure(); }
-    | identifier_list '=' expression_list       { if ($1 != $3) parsing_failure(); }
+    | identifier_list type '=' expression_list  
+    | identifier_list '=' expression_list       
     ;
 
 short_var_decl
-    : identifier_list DEFINE expression_list    { if ($1 != $3) parsing_failure(); }
-    ;
-
-const_decl
-    : CONST const_spec_first
-    | CONST '(' const_spec_list ')'
-    ;
-const_spec_list
-    : const_spec_first
-    | const_spec_first SEMICOLON
-    | const_spec_list const_spec_rest SEMICOLON
-    ;
-const_spec_first
-    : identifier_list type '=' expression_list  { if ($1 != $4) parsing_failure(); }
-    | identifier_list '=' expression_list       { if ($1 != $3) parsing_failure(); }
-    ;
-const_spec_rest
-    : identifier_list
-    | identifier_list type '=' expression_list  { if ($1 != $4) parsing_failure(); }
-    | identifier_list '=' expression_list       { if ($1 != $3) parsing_failure(); }
+    : identifier_list DEFINE expression_list    
     ;
 
 identifier_list
-    : NAME                              { $$ = 1; }
-    | NAME ',' identifier_list          { $$ = $3 + 1; }
+    : NAME                              
+    | NAME ',' identifier_list          
     ;
+
 expression_list
-    : expression                        { $$ = 1; }
-    | expression ',' expression_list    { $$ = $3 + 1; }
+    : expression                        
+    | expression ',' expression_list    
     ;
 
 type
     : NAME
     | INT
+    | UINT
+    | INT8
+    | INT16
+    | INT32
+    | INT64
+    | UINT8
+    | UINT16
+    | UINT32
+    | UINT64
     ;
 
 statement_list
     : statement
     | statement_list SEMICOLON statement
     ;
+
 statement
     : %empty
     | var_decl
-    | const_decl
     | assignment
     | inc_dec_stmt
-    | return_stmt
-    | function_call
     | if_stmt
     | for_stmt
     | block
-    | goto_stmt
-    | labeled_stmt
+    | short_var_decl
     ;
+
 block
     : '{' statement_list '}'
     ;
@@ -132,48 +123,29 @@ loop_statement_list
     : loop_statement
     | loop_statement_list SEMICOLON loop_statement
     ;
+
 loop_statement
     : %empty
     | var_decl
-    | const_decl
     | assignment
     | inc_dec_stmt
-    | return_stmt
-    | function_call
     | for_stmt
     | block
-    | goto_stmt
-    | labeled_stmt
     | break_stmt
     | continue_stmt
     | if_stmt_loop
     ;
+
 loop_block
     : '{' loop_statement_list '}'
     ;
 
-
 continue_stmt
     : CONTINUE
-    | CONTINUE NAME
     ;
 
 break_stmt
     : BREAK
-    | BREAK NAME
-    ;
-
-goto_stmt
-    : GOTO NAME
-    ;
-
-labeled_stmt
-    : NAME ':' statement
-    ;
-
-return_stmt
-    : RETURN
-    | RETURN expression_list 
     ;
 
 expression
@@ -224,9 +196,9 @@ unary_expr
     | '^' unary_expr
     | '*' unary_expr
     ;
+
 primary_expr
     : operand
-    | '&' NAME
     ;
 operand
     : NAME
@@ -271,6 +243,7 @@ logical_multiplicative_expr
     | logical_multiplicative_expr '&' logical_unary_expr
     | logical_multiplicative_expr ANDNOT logical_unary_expr
     ;
+
 logical_unary_expr
     : logical_primary_expr
     | '!' logical_unary_expr
@@ -278,18 +251,19 @@ logical_unary_expr
     | '-' logical_unary_expr
     | '^' logical_unary_expr
     ;
+
 logical_primary_expr
     : logical_operand
     ;
+
 logical_operand
     : NAME
     | NUMBER
     | '(' logical_expression ')'
     ;
 
-
 assignment
-    : identifier_list '=' expression_list       { if ($1 != $3) parsing_failure(); }
+    : identifier_list '=' expression_list      
     | NAME PLUSEQ expression
     | NAME MINUSEQ expression
     | NAME STAREQ expression
@@ -302,8 +276,14 @@ assignment
     | NAME RSHIFTEQ expression
     | NAME ANDNOTEQ expression
     ;
+
+logical_expression_list
+    : logical_expression                                
+    | logical_expression ',' logical_expression_list   
+    ;
+
 logical_assignment
-    : NAME '=' logical_expression
+    : identifier_list '=' logical_expression_list
     | NAME PLUSEQ logical_expression
     | NAME MINUSEQ logical_expression
     | NAME STAREQ logical_expression
@@ -320,11 +300,6 @@ logical_assignment
 inc_dec_stmt
     : NAME INC
     | NAME DEC
-    ;
-
-function_call
-    : NAME '(' ')'
-    | NAME '(' expression_list ')'
     ;
 
 if_stmt

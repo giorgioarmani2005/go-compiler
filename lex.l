@@ -32,8 +32,6 @@ NUMBER   {INTEGER}("."{INTEGER})?{EXPONENT}?|"."{INTEGER}{EXPONENT}?
 "package"                   { printf("%s\n", yytext); return asi_wrapper(PACKAGE); }
 "func"                      { printf("%s\n", yytext); return asi_wrapper(FUNC); }
 "var"                       { printf("%s\n", yytext); return asi_wrapper(VAR); }
-"const"                     { printf("%s\n", yytext); return asi_wrapper(CONST); }
-"return"                    { printf("%s\n", yytext); return asi_wrapper(RETURN); }
 "for"                       { printf("%s\n", yytext); return asi_wrapper(FOR); }
 "break"                     { printf("%s\n", yytext); return asi_wrapper(BREAK); }
 "if"                        { printf("%s\n", yytext); return asi_wrapper(IF); }
@@ -77,7 +75,15 @@ NUMBER   {INTEGER}("."{INTEGER})?{EXPONENT}?|"."{INTEGER}{EXPONENT}?
 
 
 "int"                       { printf("%s\n", yytext); return asi_wrapper(INT); }
-
+"int8"                      { printf("%s\n", yytext); return asi_wrapper(INT8); }
+"int16"                     { printf("%s\n", yytext); return asi_wrapper(INT16); }
+"int32"                     { printf("%s\n", yytext); return asi_wrapper(INT32); }
+"int64"                     { printf("%s\n", yytext); return asi_wrapper(INT64); }
+"uint"                      { printf("%s\n", yytext); return asi_wrapper(UINT); }
+"uint8"                     { printf("%s\n", yytext); return asi_wrapper(UINT8); }
+"uint16"                    { printf("%s\n", yytext); return asi_wrapper(UINT16); }
+"uint32"                    { printf("%s\n", yytext); return asi_wrapper(UINT32); }
+"uint64"                    { printf("%s\n", yytext); return asi_wrapper(UINT64); }
 
 
 [a-zA-Z_][a-zA-Z0-9_]*      {
@@ -113,9 +119,17 @@ int asi_wrapper(int token) {
 
     switch (token) {
         case INT:
+        case INT8:
+        case INT16:
+        case INT32:
+        case INT64:
+        case UINT:
+        case UINT8:
+        case UINT16:
+        case UINT32:
+        case UINT64:
         case NAME:
         case NUMBER:
-        case RETURN:
         case BREAK:
         case CONTINUE:
         case ')':

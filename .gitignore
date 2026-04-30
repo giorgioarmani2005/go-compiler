@@ -1,7 +1,4 @@
 asm/
 
-*.c
-*.cpp
-*.h
 
 program

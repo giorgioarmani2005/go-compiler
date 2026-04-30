@@ -32,9 +32,9 @@ NUMBER   {INTEGER}
 "func"                      { printf("%s\n", yytext); return asi_wrapper(FUNC); }
 "var"                       { printf("%s\n", yytext); return asi_wrapper(VAR); }
 "for"                       { printf("%s\n", yytext); return asi_wrapper(FOR); }
-"continue"                     { printf("%s\n", yytext); return asi_wrapper(CONTINUE); }
+"continue"                  { printf("%s\n", yytext); return asi_wrapper(CONTINUE); }
 "break"                     { printf("%s\n", yytext); return asi_wrapper(BREAK); }
-"return"                     { printf("%s\n", yytext); return asi_wrapper(RETURN); }
+"return"                    { printf("%s\n", yytext); return asi_wrapper(RETURN); }
 "if"                        { printf("%s\n", yytext); return asi_wrapper(IF); }
 "else"                      { printf("%s\n", yytext); return asi_wrapper(ELSE); }
 

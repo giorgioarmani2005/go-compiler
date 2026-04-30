@@ -17,8 +17,7 @@ static int prev_token = SEMICOLON;
 
 DIGIT    [0-9]
 INTEGER  {DIGIT}+
-EXPONENT [eE][+-]?{INTEGER}
-NUMBER   {INTEGER}("."{INTEGER})?{EXPONENT}?|"."{INTEGER}{EXPONENT}?
+NUMBER   {INTEGER}
 
 %%
 
@@ -33,7 +32,9 @@ NUMBER   {INTEGER}("."{INTEGER})?{EXPONENT}?|"."{INTEGER}{EXPONENT}?
 "func"                      { printf("%s\n", yytext); return asi_wrapper(FUNC); }
 "var"                       { printf("%s\n", yytext); return asi_wrapper(VAR); }
 "for"                       { printf("%s\n", yytext); return asi_wrapper(FOR); }
+"continue"                     { printf("%s\n", yytext); return asi_wrapper(CONTINUE); }
 "break"                     { printf("%s\n", yytext); return asi_wrapper(BREAK); }
+"return"                     { printf("%s\n", yytext); return asi_wrapper(RETURN); }
 "if"                        { printf("%s\n", yytext); return asi_wrapper(IF); }
 "else"                      { printf("%s\n", yytext); return asi_wrapper(ELSE); }
 
@@ -86,6 +87,8 @@ NUMBER   {INTEGER}("."{INTEGER})?{EXPONENT}?|"."{INTEGER}{EXPONENT}?
 "uint64"                    { printf("%s\n", yytext); return asi_wrapper(UINT64); }
 
 
+"print"                 { printf("%s\n", yytext); return asi_wrapper(PRINT); }
+
 [a-zA-Z_][a-zA-Z0-9_]*      {
     printf("NAME: '%s'\n", yytext);
     yylval.str = strdup(yytext);
@@ -94,7 +97,7 @@ NUMBER   {INTEGER}("."{INTEGER})?{EXPONENT}?|"."{INTEGER}{EXPONENT}?
 
 {NUMBER}                    {
     printf("NUMBER: '%s'\n", yytext);
-    yylval.dval = atof(yytext);
+    yylval.val = atoi(yytext);
     return asi_wrapper(NUMBER);
 }
 
@@ -132,6 +135,7 @@ int asi_wrapper(int token) {
         case NUMBER:
         case BREAK:
         case CONTINUE:
+        case PRINT:
         case ')':
         case '}':
         case INC:

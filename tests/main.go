@@ -5,9 +5,11 @@ func main() {
 
 	var k = 32
 
+	i := 5
+
 	for i := 0; i < 10; i++ {
 		if i % 2 == 0 {
-			continue
+			print(i)
 		} else if i % 3 == 0 {
 			print(a)
 		} else if i % 5 == 0 {

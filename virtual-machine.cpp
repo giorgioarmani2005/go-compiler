@@ -82,7 +82,7 @@ void VirtualMachine::init_instructions_memory(std::vector<std::string> lines) {
 
             if(has_label(operands_str)){
                 label_name = line.substr(space_pos+1, line.length() - 1); 
-                labeles_map[label_name] = i+1; //+1 because i=0 in start
+                labeles_map[label_name] = i+1; //+1 because i=0 in for
                 instructions_memory[i].operands.push_back(label_name);
                 continue;
             }
@@ -117,7 +117,7 @@ void VirtualMachine::execute_action(int (*func)(int, int)) {
 
 void VirtualMachine::execute_action(bool (*func)(int, int)) {
     if (REG_SP.size() < 2) {
-        std::cerr << "Error: Binary instruction requires exactly 2 operands." << std::endl;
+        std::cerr << "Error: logical instruction requires exactly 2 operands." << std::endl;
         return;
     }
     int right = REG_SP.top(); REG_SP.pop();

@@ -551,9 +551,7 @@ if_token
         printf("Entered scope\n");
 
         last_if_label = last_label + 1;
-        last_label += 2;
-
-        label_operation(last_if_label);
+        last_label += last_if_label;
 
         $$ = last_if_label;
     }
@@ -589,7 +587,7 @@ if_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
-        label_operation($1 + 1);
+        label_operation($1);
     }
     | if_token logical_expression block elif_stmt {
         scopes.pop_back();
@@ -609,7 +607,7 @@ elif_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
-        label_operation($1 + 1);
+        label_operation($1);
     }
     | else_if_token logical_expression block else_stmt {
         scopes.pop_back();
@@ -635,7 +633,7 @@ else_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
-        label_operation($1 + 1);
+        label_operation($1);
     }
     ;
 

@@ -28,12 +28,17 @@ typedef struct {
 std::vector<Scope> scopes;
 
 int variable_lookup(const std::string& name);
+int find_last_taken_id();
 int create_variable(const std::string& name);
 
 void yyerror(const char* s);
 
-void write_operation(int addr_dest) {
+void write_reg_operation(int addr_dest) {
     fprintf(yyout, "WRITE [%d], ax\n", addr_dest);
+}
+
+void write_num_operation(int addr_dest, int num) {
+    fprintf(yyout, "WRITE [%d], %d\n", addr_dest, num);
 }
 
 void load_operation(int addr_src) {
@@ -136,7 +141,9 @@ void label_operation(int label_num) {
     fprintf(yyout, "\n%d:\n", label_num);
 }
 
-
+void jmp_operation(int label_num) {
+    fprintf(yyout, "JMP %d\n", label_num);
+}
 
 %}
 
@@ -166,6 +173,8 @@ void label_operation(int label_num) {
 
 %token <val> NUMBER
 %token <str> NAME
+
+%type <val> identifier_list
 
 %type <val> for_token
 %type <val> if_token
@@ -201,38 +210,78 @@ var_spec_list
     | var_spec SEMICOLON var_spec_list
     ;
 var_spec
+    : identifier_list type {
+        int last_variable_id = find_last_taken_id();
+        for (int i = 0; i < $1; ++i) {
+            write_num_operation(last_variable_id + i, 0);
+        }
+    }
+    | identifier_list type '=' expression_list {
+        int last_variable_id = find_last_taken_id();
+        for (int i = 0; i < $1; ++i) {
+            pop_operation();
+            write_reg_operation(last_variable_id + i);
+        }
+    }
+    | identifier_list '=' expression_list {
+        int last_variable_id = find_last_taken_id();
+        for (int i = 0; i < $1; ++i) {
+            pop_operation();
+            write_reg_operation(last_variable_id + i);
+        }
+    }
+    ;
+
+identifier_list
+    : NAME {
+        create_variable($1);
+        
+        $$ = 0;
+    }
+    | NAME ',' identifier_list {
+        create_variable($1);
+
+        $$ = $3 + 1;
+    }
+    ;
+expression_list
+    : expression
+    | expression ',' expression_list
+    ;
+
+/* var_spec
     : NAME '=' expression {
         int variable_addr = create_variable($1);
         
         pop_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
     | NAME type '=' expression {
         int variable_addr = create_variable($1);
         
         pop_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
     | NAME ',' var_spec ',' expression {
         int variable_addr = create_variable($1);
         
         pop_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
-    ;
+    ; */
 
 short_var_decl
     : NAME DEFINE expression {
         int variable_addr = create_variable($1);
 
         pop_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
     | NAME ',' short_var_decl ',' expression {
         int variable_addr = create_variable($1);
 
         pop_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
     ;    
 
@@ -292,11 +341,15 @@ loop_block
     ;
 
 continue_stmt
-    : CONTINUE
+    : CONTINUE {
+        jmp_operation(last_for_label);
+    }
     ;
 
 break_stmt
-    : BREAK
+    : BREAK {
+        jmp_operation(last_for_label + 1);
+    }
     ;
 
 expression
@@ -372,8 +425,11 @@ operand
     ;
 
 logical_expression
+    : logical_expression_or
+    ;
+logical_expression_or
     : logical_expression_and
-    | logical_expression LOR logical_expression_and {
+    | logical_expression_or LOR logical_expression_and {
         logical_or_operation();
     }
     ;
@@ -531,7 +587,7 @@ inc_dec_stmt
         push_reg_operation();
         push_num_operation(1);
         sum_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
     | NAME DEC  {
         int variable_addr = variable_lookup($1);
@@ -541,7 +597,7 @@ inc_dec_stmt
         push_num_operation(1);
         sum_operation();
         pop_operation();
-        write_operation(variable_addr);
+        write_reg_operation(variable_addr);
     }
     ;
 
@@ -638,17 +694,22 @@ else_stmt
     ;
 
 if_stmt_loop
-    : IF logical_expression loop_block elif_stmt_loop
-    | IF short_var_decl SEMICOLON logical_expression loop_block elif_stmt_loop
+    : IF if_comparison loop_block elif_stmt_loop
+    | IF short_var_decl SEMICOLON if_comparison loop_block elif_stmt_loop
     ;
 elif_stmt_loop
     : else_stmt_loop
-    | ELSE IF logical_expression loop_block elif_stmt_loop
-    | ELSE IF short_var_decl SEMICOLON logical_expression loop_block elif_stmt_loop
+    | ELSE IF if_comparison loop_block elif_stmt_loop
+    | ELSE IF short_var_decl SEMICOLON if_comparison loop_block elif_stmt_loop
     ;
 else_stmt_loop
     : %empty
     | ELSE loop_block
+    ;
+if_comparison
+    : logical_expression {
+        jmp_operation(last_if_label);
+    }
     ;
 
 for_token
@@ -669,18 +730,21 @@ for_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
+        jmp_operation($1);
         label_operation($1 + 1);
     }
     | for_token logical_expression loop_block {
         scopes.pop_back();
         printf("Left scope\n");
 
+        jmp_operation($1);
         label_operation($1 + 1);
     }
     | for_token for_var_init SEMICOLON for_comparison SEMICOLON for_post loop_block {
         scopes.pop_back();
         printf("Left scope\n");
 
+        jmp_operation($1);
         label_operation($1 + 1);
     }
     ;
@@ -690,7 +754,10 @@ for_var_init
     ;
 for_comparison
     : %empty
-    | logical_expression
+    | logical_expression {
+        // Добавить сравнение
+        jmp_operation(last_for_label + 1);
+    }
     ;
 for_post
     : %empty

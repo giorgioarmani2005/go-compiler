@@ -4,7 +4,7 @@
 #include "virtual-machine.h"
 #include <map>
 
-extern int stub_variables[100];
+
 
 // Helper functions
 bool has_label(std::string line){
@@ -38,7 +38,8 @@ bool is_virtual_memmory(std::string operand){
     size_t last = str.find_last_not_of(' ');
     return str.substr(first, (last - first + 1));
  }
- //
+
+//
 
 VirtualMachine::VirtualMachine(std::string path_to_asm) {
     std::ifstream bytecode_file(path_to_asm);
@@ -65,12 +66,13 @@ VirtualMachine::VirtualMachine(std::string path_to_asm) {
 
     instructions_memory = new Instruction[lines.size()+1];//+1 because HALT may be missing
 
+
     REG_AX = new int(0);
     
-    init_instructions_memory(lines);
+    init_VM_memory(lines);
 }
 
-void VirtualMachine::init_instructions_memory(std::vector<std::string> lines) {
+void VirtualMachine::init_VM_memory(std::vector<std::string> lines) {
     for (size_t i = 0; i < lines.size(); ++i) {
         std::string line = lines[i];
         std::string label_name;
@@ -100,6 +102,7 @@ void VirtualMachine::init_instructions_memory(std::vector<std::string> lines) {
         }
     }
     
+    virtual_memory_variables.resize(100);//100 VARIABLES IN DEFAULT
 }
 
 void VirtualMachine::execute_action(int (*func)(int, int)) {
@@ -266,7 +269,7 @@ void VirtualMachine::execute_load() {
         return;
     }
     if(REG_IP->operands[0]=="ax" && is_virtual_memmory(REG_IP->operands[1])){
-        *REG_AX=stub_variables[get_virtual_memmory_address(REG_IP->operands[1])];
+        *REG_AX=virtual_memory_variables[get_virtual_memmory_address(REG_IP->operands[1])];
     }
     else{
         std::cerr<<"Error: Unsupported LOAD operands: "<<REG_IP->operands[0]<<", "<<REG_IP->operands[1]<<std::endl;
@@ -287,7 +290,11 @@ void VirtualMachine::execute_write() {
             std::cerr << "Error: Accumulator register is null." << std::endl;
             return;
         }
-        stub_variables[get_virtual_memmory_address(REG_IP->operands[0])]=*REG_AX;
+        if(get_virtual_memmory_address(REG_IP->operands[0])>virtual_memory_variables.size()){
+            // std::cout<<"New memory..\n";
+            virtual_memory_variables.resize(get_virtual_memmory_address(REG_IP->operands[0])+virtual_memory_variables.size());
+        }
+        virtual_memory_variables[get_virtual_memmory_address(REG_IP->operands[0])]=*REG_AX;
     }
     else{
         std::cerr<<"Error: Unsupported WRITE operands: "<<REG_IP->operands[0]<<", "<<REG_IP->operands[1]<<std::endl;

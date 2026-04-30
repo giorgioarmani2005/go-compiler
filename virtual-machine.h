@@ -5,7 +5,7 @@
 #include <stack>
 #include <map>
 
-int stub_variables[100]; 
+
 
 struct Instruction {
     std::string opcode;
@@ -33,12 +33,15 @@ class VirtualMachine {
 
         Memory instructions_memory=nullptr;
 
+        std::vector <int> virtual_memory_variables;
+
         InstructionRegister REG_IP=nullptr;
         RegisterStack REG_SP;
         AccamulatorRegister REG_AX=nullptr;
         EFLAG REG_EFLAG;
 
-        void init_instructions_memory(std::vector<std::string> lines);
+        void init_VM_memory(std::vector<std::string> lines);
+        void extend_virtual_memory(int add_size);
 
         void execute_action(int (*func)(int, int));
         void execute_action(bool (*func)(int, int));

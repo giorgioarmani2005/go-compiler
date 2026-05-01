@@ -1,4 +1,7 @@
 asm/
 
+grammar.tab.c
+grammar.tab.h
+lex.yy.c
 
 program

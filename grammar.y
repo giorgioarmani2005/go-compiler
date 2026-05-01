@@ -17,8 +17,6 @@ extern FILE* yyin;
 extern FILE* yyout;
 
 int last_label = 0;
-int last_for_label = 0;
-int last_if_label = 0;
 
 typedef struct {
     int last_id = -1;
@@ -27,6 +25,7 @@ typedef struct {
 
 std::vector<Scope> scopes;
 std::vector<std::vector<int>> if_label_ids;
+std::vector<int> for_label_ids;
 
 int variable_lookup(const std::string& name);
 int find_last_taken_id();
@@ -99,39 +98,39 @@ void rshift_operation() {
 }
 
 void logical_or_operation() {
-    fprintf(yyout, "OR\n");
+    fprintf(yyout, "CMP OR\n");
 }
 
 void logical_and_operation() {
-    fprintf(yyout, "AND\n");
-}
-
-void equal_operation() {
-    fprintf(yyout, "CMP\n");
-}
-
-void not_equal_operation() {
-    fprintf(yyout, "CMP\n");
-}
-
-void lower_operation() {
-    fprintf(yyout, "CMP\n");
-}
-
-void greater_operation() {
-    fprintf(yyout, "CMP\n");
-}
-
-void lower_or_equal_operation() {
-    fprintf(yyout, "LWEQ\n");
-}
-
-void greater_or_equal_operation() {
-    fprintf(yyout, "GTEQ\n");
+    fprintf(yyout, "CMPLAND\n");
 }
 
 void and_not_operation() {
-    fprintf(yyout, "ANDNOT\n");
+    fprintf(yyout, "CMP ANDNOT\n");
+}
+
+void equal_operation() {
+    fprintf(yyout, "CMP EQ\n");
+}
+
+void not_equal_operation() {
+    fprintf(yyout, "CMP NEQ\n");
+}
+
+void lower_operation() {
+    fprintf(yyout, "CMP LW\n");
+}
+
+void greater_operation() {
+    fprintf(yyout, "CMP GT\n");
+}
+
+void lower_or_equal_operation() {
+    fprintf(yyout, "CMP LWEQ\n");
+}
+
+void greater_or_equal_operation() {
+    fprintf(yyout, "CMP GTEQ\n");
 }
 
 void print_operation() {
@@ -226,22 +225,22 @@ var_spec_list
 var_spec
     : identifier_list type {
         int last_variable_id = find_last_taken_id();
-        for (int i = 0; i < $1; ++i) {
-            write_num_operation(last_variable_id + i, 0);
+        for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
+            write_num_operation(i, 0);
         }
     }
     | identifier_list type '=' expression_list {
         int last_variable_id = find_last_taken_id();
-        for (int i = 0; i < $1; ++i) {
+        for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
             pop_operation();
-            write_reg_operation(last_variable_id + i);
+            write_reg_operation(i);
         }
     }
     | identifier_list '=' expression_list {
         int last_variable_id = find_last_taken_id();
-        for (int i = 0; i < $1; ++i) {
+        for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
             pop_operation();
-            write_reg_operation(last_variable_id + i);
+            write_reg_operation(i);
         }
     }
     ;
@@ -264,17 +263,12 @@ expression_list
     ;
 
 short_var_decl
-    : NAME DEFINE expression {
-        int variable_addr = create_variable($1);
-
-        pop_operation();
-        write_reg_operation(variable_addr);
-    }
-    | NAME ',' short_var_decl ',' expression {
-        int variable_addr = create_variable($1);
-
-        pop_operation();
-        write_reg_operation(variable_addr);
+    : identifier_list DEFINE expression_list {
+        int last_variable_id = find_last_taken_id();
+        for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
+            pop_operation();
+            write_reg_operation(i);
+        }
     }
     ;
 
@@ -334,13 +328,13 @@ loop_block
 
 continue_stmt
     : CONTINUE {
-        jmp_operation(last_for_label);
+        jmp_operation(for_label_ids.back());
     }
     ;
 
 break_stmt
     : BREAK {
-        jmp_operation(last_for_label + 1);
+        jmp_operation(for_label_ids.back() + 1);
     }
     ;
 
@@ -548,7 +542,13 @@ variable_assignment
     ;
 
 assignment
-    : variable_assignment
+    : identifier_list '=' expression_list {
+        int last_variable_id = find_last_taken_id();
+        for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
+            pop_operation();
+            write_reg_operation(i);
+        }
+    }
     | NAME PLUSEQ expression
     | NAME MINUSEQ expression
     | NAME STAREQ expression
@@ -738,10 +738,10 @@ for_token
         scopes.push_back({});
         printf("Entered scope\n");
 
-        last_for_label = last_label + 1;
+        for_label_ids.push_back(last_label + 1);
         last_label += 2;
 
-        $$ = last_for_label;
+        $$ = last_label + 1;
     }
     ;
 for_stmt
@@ -751,6 +751,8 @@ for_stmt
 
         jmp_operation($1);
         label_operation($1 + 1);
+
+        for_label_ids.pop_back();
     }
     | for_token logical_expression loop_block {
         scopes.pop_back();
@@ -758,6 +760,8 @@ for_stmt
 
         jmp_operation($1);
         label_operation($1 + 1);
+
+        for_label_ids.pop_back();
     }
     | for_token for_var_init SEMICOLON for_comparison SEMICOLON for_post loop_block {
         scopes.pop_back();
@@ -765,14 +769,16 @@ for_stmt
 
         jmp_operation($1);
         label_operation($1 + 1);
+
+        for_label_ids.pop_back();
     }
     ;
 for_var_init
     : %empty {
-        label_operation(last_for_label);
+        label_operation(for_label_ids.back());
     }
     | short_var_decl {
-        label_operation(last_for_label);
+        label_operation(for_label_ids.back());
     }
     ;
 for_comparison
@@ -780,7 +786,7 @@ for_comparison
     | logical_expression {
         push_num_operation(0);
         cmp_operation();
-        jmp_equal_operation(last_for_label + 1);
+        jmp_equal_operation(for_label_ids.back() + 1);
     }
     ;
 for_post

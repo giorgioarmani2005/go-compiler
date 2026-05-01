@@ -9,7 +9,7 @@ func main() {
 
 	for i := 0; i < 10; i++ {
 		if i % 2 == 0 {
-			print(i)
+			break
 		} else if i % 3 == 0 {
 			print(a)
 		} else if i % 5 == 0 {
@@ -20,6 +20,10 @@ func main() {
 
 		for j := i; i < 25; j++ {
 			print(j)
+
+			if j % 2 == 0 {
+				continue
+			}
 		}
 
 		print(i)

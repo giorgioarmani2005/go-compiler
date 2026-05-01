@@ -149,12 +149,18 @@ void halt_operation() {
     fprintf(yyout, "HALT\n");
 }
 
-void cmp_operation() {
-    fprintf(yyout, "CMP\n");
-}
-
 void jmp_equal_operation(int label_num) {
     fprintf(yyout, "JMPEQ %d\n", label_num);
+}
+
+void process_unary(char *variable_name, void (*unary_operation)()) {
+    int variable_id = variable_lookup(variable_name);
+
+    load_operation(variable_id);
+    push_reg_operation();
+    unary_operation();
+    pop_operation();
+    write_reg_operation(variable_id);
 }
 
 %}
@@ -257,6 +263,18 @@ identifier_list
         $$ = $3 + 1;
     }
     ;
+/* identifier_list_assignment
+    : NAME {
+        create_variable($1);
+        
+        $$ = 0;
+    }
+    | NAME ',' identifier_list {
+        create_variable($1);
+
+        $$ = $3 + 1;
+    }
+    ; */
 expression_list
     : expression
     | expression ',' expression_list
@@ -296,12 +314,6 @@ statement
 block
     : '{' statement_list '}'
     ;
-/* open_bracket
-    : '{'       { scopes.push_back({}); printf("Entered scope\n"); }
-    ;
-close_bracket
-    : '}'       { scopes.pop_back(); printf("Left scope\n"); }
-    ; */
 
 loop_statement_list
     : loop_statement
@@ -532,38 +544,53 @@ logical_operand
     | '(' expression ')'
     ;
 
-variable_assignment
-    : NAME '=' NAME {
-        printf("%s = %s\n", $1, $3);
-    }
-    | NAME ',' variable_assignment ',' NAME {
-        printf("%s = %s\n", $1, $5);
-    }
-    ;
-
 assignment
-    : identifier_list '=' expression_list {
-        int last_variable_id = find_last_taken_id();
-        for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
-            pop_operation();
-            write_reg_operation(i);
-        }
+    : NAME '=' expression {
+        int variable_id = variable_lookup($1);
+
+        pop_operation();
+        write_reg_operation(variable_id);
     }
-    | NAME PLUSEQ expression
-    | NAME MINUSEQ expression
-    | NAME STAREQ expression
-    | NAME DIVEQ expression
-    | NAME MODEQ expression
-    | NAME ANDEQ expression
-    | NAME OREQ expression
-    | NAME XOREQ expression
-    | NAME LSHIFTEQ expression
-    | NAME RSHIFTEQ expression
+    | NAME PLUSEQ expression {
+        process_unary($1, sum_operation);
+    }
+    | NAME MINUSEQ expression {
+        process_unary($1, sub_operation);
+    }
+    | NAME STAREQ expression {
+        process_unary($1, mul_operation);
+    }
+    | NAME DIVEQ expression {
+        process_unary($1, div_operation);
+    }
+    | NAME MODEQ expression {
+        process_unary($1, mod_operation);
+    }
+    | NAME ANDEQ expression {
+        process_unary($1, and_operation);
+    }
+    | NAME OREQ expression {
+        process_unary($1, or_operation);
+    }
+    | NAME XOREQ expression {
+        process_unary($1, xor_operation);
+    }
+    | NAME LSHIFTEQ expression {
+        process_unary($1, lshift_operation);
+    }
+    | NAME RSHIFTEQ expression {
+        process_unary($1, rshift_operation);
+    }
     | NAME ANDNOTEQ expression
     ;
 
 logical_assignment
-    : variable_assignment
+    : NAME '=' expression {
+        int variable_id = variable_lookup($1);
+
+        pop_operation();
+        write_reg_operation(variable_id);
+    }
     | NAME PLUSEQ logical_expression
     | NAME MINUSEQ logical_expression
     | NAME STAREQ logical_expression
@@ -585,6 +612,7 @@ inc_dec_stmt
         push_reg_operation();
         push_num_operation(1);
         sum_operation();
+        pop_operation();
         write_reg_operation(variable_addr);
     }
     | NAME DEC  {
@@ -638,6 +666,7 @@ if_stmt
         scopes.pop_back();
         printf("Left if scope\n");
 
+        label_operation(if_label_ids.back().back() + 1);
         label_operation(if_label_ids.back().front());
 
         if_label_ids.pop_back();
@@ -654,7 +683,9 @@ elif_stmt
 
         last_label -= 1;
 
+        label_operation(if_label_ids.back().back() + 1);
         label_operation(if_label_ids.back().front());
+
         if_label_ids.pop_back();
     }
     | else_if_token if_comparison if_block elif_stmt
@@ -667,7 +698,6 @@ else_stmt
         printf("Left if scope\n");
 
         label_operation(if_label_ids.back().front());
-        
         if_label_ids.pop_back();
     }
     ;
@@ -677,6 +707,7 @@ if_stmt_loop
         scopes.pop_back();
         printf("Left scope\n");
 
+        label_operation(if_label_ids.back().back() + 1);
         label_operation(if_label_ids.back().front());
         
         if_label_ids.pop_back();
@@ -693,6 +724,7 @@ elif_stmt_loop
 
         last_label -= 1;
 
+        label_operation(if_label_ids.back().back() + 1);
         label_operation(if_label_ids.back().front());
         if_label_ids.pop_back();
     }
@@ -712,7 +744,7 @@ else_stmt_loop
 if_comparison
     : logical_expression {
         push_num_operation(0);
-        cmp_operation();
+        equal_operation();
         jmp_equal_operation(if_label_ids.back().back() + 1);
     }
     ;
@@ -739,9 +771,9 @@ for_token
         printf("Entered scope\n");
 
         for_label_ids.push_back(last_label + 1);
-        last_label += 2;
 
         $$ = last_label + 1;
+        last_label += 4;
     }
     ;
 for_stmt
@@ -767,7 +799,7 @@ for_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
-        jmp_operation($1);
+        jmp_operation($1 + 2);
         label_operation($1 + 1);
 
         for_label_ids.pop_back();
@@ -785,14 +817,22 @@ for_comparison
     : %empty
     | logical_expression {
         push_num_operation(0);
-        cmp_operation();
+        equal_operation();
         jmp_equal_operation(for_label_ids.back() + 1);
+        jmp_operation(for_label_ids.back() + 3);
+        label_operation(for_label_ids.back() + 2);
     }
     ;
 for_post
     : %empty
-    | logical_assignment
-    | inc_dec_stmt
+    | logical_assignment {
+        jmp_operation(for_label_ids.back());
+        label_operation(for_label_ids.back() + 3);
+    }
+    | inc_dec_stmt {
+        jmp_operation(for_label_ids.back());
+        label_operation(for_label_ids.back() + 3);
+    }
     ;
 
 print_stmt

@@ -53,7 +53,7 @@ VirtualMachine::VirtualMachine(std::string path_to_asm)
     if (!bytecode_file.is_open())
     {
         std::cerr << "Error: Could not open bytecode file: " << path_to_asm << std::endl;
-        return;
+        exit(1);
     }
 
     std::vector<std::string> lines;

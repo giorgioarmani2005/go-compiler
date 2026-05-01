@@ -26,6 +26,7 @@ typedef struct {
 } Scope;
 
 std::vector<Scope> scopes;
+std::vector<std::vector<int>> if_label_ids;
 
 int variable_lookup(const std::string& name);
 int find_last_taken_id();
@@ -98,27 +99,27 @@ void rshift_operation() {
 }
 
 void logical_or_operation() {
-    fprintf(yyout, "LOR\n");
+    fprintf(yyout, "OR\n");
 }
 
 void logical_and_operation() {
-    fprintf(yyout, "LAND\n");
+    fprintf(yyout, "AND\n");
 }
 
 void equal_operation() {
-    fprintf(yyout, "EQ\n");
+    fprintf(yyout, "CMP\n");
 }
 
 void not_equal_operation() {
-    fprintf(yyout, "NEQ\n");
+    fprintf(yyout, "CMP\n");
 }
 
 void lower_operation() {
-    fprintf(yyout, "LW\n");
+    fprintf(yyout, "CMP\n");
 }
 
 void greater_operation() {
-    fprintf(yyout, "GT\n");
+    fprintf(yyout, "CMP\n");
 }
 
 void lower_or_equal_operation() {
@@ -145,17 +146,24 @@ void jmp_operation(int label_num) {
     fprintf(yyout, "JMP %d\n", label_num);
 }
 
+void halt_operation() {
+    fprintf(yyout, "HALT\n");
+}
+
+void cmp_operation() {
+    fprintf(yyout, "CMP\n");
+}
+
+void jmp_equal_operation(int label_num) {
+    fprintf(yyout, "JMPEQ %d\n", label_num);
+}
+
 %}
 
 %union {
     int element_count;
     int val;
     char *str;
-
-    // struct array_id {
-    //     int current_array_id;
-    //     int *variable_ids_array;
-    // };
 }
 
 %token INT UINT INT8 INT16 INT32 INT64 UINT8 UINT16 UINT32 UINT64
@@ -196,8 +204,14 @@ global_decl
     | main_decl
     ;
 
+
+func_token
+    : FUNC { scopes.push_back({}); printf("Entered scope\n"); }
+    ;
 main_decl
-    : FUNC NAME '(' ')' block
+    : func_token NAME '(' ')' block {
+        scopes.pop_back(); printf("Left scope\n");
+    }
     ;
 
 var_decl
@@ -249,27 +263,6 @@ expression_list
     | expression ',' expression_list
     ;
 
-/* var_spec
-    : NAME '=' expression {
-        int variable_addr = create_variable($1);
-        
-        pop_operation();
-        write_reg_operation(variable_addr);
-    }
-    | NAME type '=' expression {
-        int variable_addr = create_variable($1);
-        
-        pop_operation();
-        write_reg_operation(variable_addr);
-    }
-    | NAME ',' var_spec ',' expression {
-        int variable_addr = create_variable($1);
-        
-        pop_operation();
-        write_reg_operation(variable_addr);
-    }
-    ; */
-
 short_var_decl
     : NAME DEFINE expression {
         int variable_addr = create_variable($1);
@@ -283,9 +276,7 @@ short_var_decl
         pop_operation();
         write_reg_operation(variable_addr);
     }
-    ;    
-
-
+    ;
 
 type
     : INT
@@ -303,20 +294,20 @@ statement
     | inc_dec_stmt
     | if_stmt
     | for_stmt
-    | block
     | short_var_decl
     | print_stmt
+    | return_stmt
     ;
 
 block
-    : open_bracket statement_list close_bracket
+    : '{' statement_list '}'
     ;
-open_bracket
+/* open_bracket
     : '{'       { scopes.push_back({}); printf("Entered scope\n"); }
     ;
 close_bracket
     : '}'       { scopes.pop_back(); printf("Left scope\n"); }
-    ;
+    ; */
 
 loop_statement_list
     : loop_statement
@@ -332,6 +323,7 @@ loop_statement
     | block
     | break_stmt
     | continue_stmt
+    | return_stmt
     | if_stmt_loop
     | print_stmt
     ;
@@ -349,6 +341,12 @@ continue_stmt
 break_stmt
     : BREAK {
         jmp_operation(last_for_label + 1);
+    }
+    ;
+
+return_stmt
+    : RETURN {
+        halt_operation();
     }
     ;
 
@@ -606,10 +604,9 @@ if_token
         scopes.push_back({});
         printf("Entered scope\n");
 
-        last_if_label = last_label + 1;
-        last_label += last_if_label;
+        if_label_ids.push_back({last_label + 1});
 
-        $$ = last_if_label;
+        last_label += 1;
     }
     ;
 else_if_token
@@ -617,12 +614,11 @@ else_if_token
         scopes.push_back({});
         printf("Entered scope\n");
 
-        last_if_label = last_label + 1;
-        last_label += 2;
+        int new_id = if_label_ids.back().back() + 1;
+        label_operation(new_id);
+        if_label_ids.back().push_back(new_id);
 
-        label_operation(last_if_label);
-
-        $$ = last_if_label;
+        last_label += 1;
     }
     ;
 else_token
@@ -630,85 +626,110 @@ else_token
         scopes.push_back({});
         printf("Entered scope\n");
 
-        last_if_label = last_label + 1;
-        last_label += 2;
+        int new_id = if_label_ids.back().back() + 1;
+        label_operation(new_id);
+        if_label_ids.back().push_back(new_id);
 
-        label_operation(last_if_label);
-
-        $$ = last_if_label;
+        last_label += 1;
     }
     ;
 if_stmt
-    : if_token logical_expression block {
+    : if_token if_comparison block {
         scopes.pop_back();
-        printf("Left scope\n");
+        printf("Left if scope\n");
 
-        label_operation($1);
-    }
-    | if_token logical_expression block elif_stmt {
-        scopes.pop_back();
-        printf("Left scope\n");
+        label_operation(if_label_ids.back().front());
 
-        last_label -= 1;
+        if_label_ids.pop_back();
     }
-    | if_token short_var_decl SEMICOLON logical_expression block elif_stmt {
-        scopes.pop_back();
-        printf("Left scope\n");
-
-        last_label -= 1;
-    }
+    | if_token if_comparison if_block elif_stmt
+    | if_token if_comparison if_block else_stmt
+    | if_token short_var_decl SEMICOLON if_comparison if_block elif_stmt
+    | if_token short_var_decl SEMICOLON if_comparison if_block else_stmt
     ;
 elif_stmt
-    : else_if_token logical_expression block {
+    : else_if_token if_comparison block {
         scopes.pop_back();
-        printf("Left scope\n");
-
-        label_operation($1);
-    }
-    | else_if_token logical_expression block else_stmt {
-        scopes.pop_back();
-        printf("Left scope\n");
+        printf("Left else if scope\n");
 
         last_label -= 1;
-    }
-    | else_if_token logical_expression block elif_stmt {
-        scopes.pop_back();
-        printf("Left scope\n");
 
-        last_label -= 1;
+        label_operation(if_label_ids.back().front());
+        if_label_ids.pop_back();
     }
-    | else_if_token short_var_decl SEMICOLON logical_expression block elif_stmt {
-        scopes.pop_back();
-        printf("Left scope\n");
-
-        last_label -= 1;
-    }
+    | else_if_token if_comparison if_block elif_stmt
+    | else_if_token if_comparison if_block else_stmt
+    | else_if_token short_var_decl SEMICOLON if_comparison if_block elif_stmt
     ;
 else_stmt
     : else_token block {
         scopes.pop_back();
-        printf("Left scope\n");
+        printf("Left if scope\n");
 
-        label_operation($1);
+        label_operation(if_label_ids.back().front());
+        
+        if_label_ids.pop_back();
     }
     ;
 
 if_stmt_loop
-    : IF if_comparison loop_block elif_stmt_loop
-    | IF short_var_decl SEMICOLON if_comparison loop_block elif_stmt_loop
+    : if_token if_comparison loop_block {
+        scopes.pop_back();
+        printf("Left scope\n");
+
+        label_operation(if_label_ids.back().front());
+        
+        if_label_ids.pop_back();
+    }
+    | if_token if_comparison if_loop_block elif_stmt_loop
+    | if_token if_comparison if_loop_block else_stmt_loop
+    | if_token short_var_decl SEMICOLON if_comparison if_loop_block elif_stmt_loop
+    | if_token short_var_decl SEMICOLON if_comparison if_loop_block else_stmt_loop
     ;
 elif_stmt_loop
-    : else_stmt_loop
-    | ELSE IF if_comparison loop_block elif_stmt_loop
-    | ELSE IF short_var_decl SEMICOLON if_comparison loop_block elif_stmt_loop
+    : else_if_token if_comparison loop_block {
+        scopes.pop_back();
+        printf("Left scope\n");
+
+        last_label -= 1;
+
+        label_operation(if_label_ids.back().front());
+        if_label_ids.pop_back();
+    }
+    | else_if_token if_comparison if_loop_block elif_stmt_loop
+    | else_if_token if_comparison if_loop_block else_stmt_loop
+    | else_if_token short_var_decl SEMICOLON if_comparison if_loop_block elif_stmt_loop
     ;
 else_stmt_loop
-    : %empty
-    | ELSE loop_block
+    : else_token loop_block {
+        scopes.pop_back();
+        printf("Left scope\n");
+
+        label_operation(if_label_ids.back().front());
+        if_label_ids.pop_back();
+    }
     ;
 if_comparison
     : logical_expression {
-        jmp_operation(last_if_label);
+        push_num_operation(0);
+        cmp_operation();
+        jmp_equal_operation(if_label_ids.back().back() + 1);
+    }
+    ;
+if_block
+    : block {
+        scopes.pop_back();
+        printf("Left if scope\n");
+
+        jmp_operation(if_label_ids.back().front());
+    }
+    ;
+if_loop_block
+    : loop_block {
+        scopes.pop_back();
+        printf("Left if scope\n");
+
+        jmp_operation(if_label_ids.back().front());
     }
     ;
 
@@ -719,8 +740,6 @@ for_token
 
         last_for_label = last_label + 1;
         last_label += 2;
-
-        label_operation(last_for_label);
 
         $$ = last_for_label;
     }
@@ -749,14 +768,19 @@ for_stmt
     }
     ;
 for_var_init
-    : %empty
-    | short_var_decl
+    : %empty {
+        label_operation(last_for_label);
+    }
+    | short_var_decl {
+        label_operation(last_for_label);
+    }
     ;
 for_comparison
     : %empty
     | logical_expression {
-        // Добавить сравнение
-        jmp_operation(last_for_label + 1);
+        push_num_operation(0);
+        cmp_operation();
+        jmp_equal_operation(last_for_label + 1);
     }
     ;
 for_post

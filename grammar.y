@@ -340,7 +340,7 @@ loop_block
 
 continue_stmt
     : CONTINUE {
-        jmp_operation(for_label_ids.back());
+        jmp_operation(for_label_ids.back() + 2);
     }
     ;
 
@@ -634,7 +634,7 @@ if_token
 
         if_label_ids.push_back({last_label + 1});
 
-        last_label += 1;
+        last_label += 2;
     }
     ;
 else_if_token
@@ -781,7 +781,7 @@ for_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
-        jmp_operation($1);
+        jmp_operation($1 + 2);
         label_operation($1 + 1);
 
         for_label_ids.pop_back();
@@ -790,7 +790,7 @@ for_stmt
         scopes.pop_back();
         printf("Left scope\n");
 
-        jmp_operation($1);
+        jmp_operation($1 + 2);
         label_operation($1 + 1);
 
         for_label_ids.pop_back();

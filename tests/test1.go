@@ -3,11 +3,11 @@ package main
 func main() {
 	var a int = 0
 	
-	for i := 0; i < 5; i++ {
-		a += i
+	for i := 0; a < 5; i++ {
+		print(i)
 
-		if a % 2 == 0 {
-			print(a)
+		if i % 2 == 0 {
+			continue
 		}
 	}
 

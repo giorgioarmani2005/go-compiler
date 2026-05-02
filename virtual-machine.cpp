@@ -257,6 +257,20 @@ void VirtualMachine::run()
         {
             execute_action([](int a, int b)
                            { return a + b; });
+        } else if(REG_IP->opcode == "XOR")
+        {
+            execute_action([](int a, int b)
+                           { return a ^ b; });
+        }
+        else if (REG_IP->opcode == "LSHIFT")
+        {
+            execute_action([](int a, int b)
+                           { return a << b; });
+        }
+        else if (REG_IP->opcode == "RSHIFT")
+        {
+            execute_action([](int a, int b)
+                           { return a >> b; });
         }
         else if (REG_IP->opcode == "SUB")
         {
@@ -281,12 +295,12 @@ void VirtualMachine::run()
         else if (REG_IP->opcode == "AND")
         {
             execute_action([](int a, int b)
-                           { return a && b; });
+                           { return a & b; });
         }
         else if (REG_IP->opcode == "OR")
         {
             execute_action([](int a, int b)
-                           { return a || b; });
+                           { return a | b; });
         }
         else if (REG_IP->opcode == "CMP")
         {
@@ -451,4 +465,3 @@ void VirtualMachine::execute_jump(bool (*condition)())
         REG_IP = &instructions_memory[addr_label];
     }
 }
-

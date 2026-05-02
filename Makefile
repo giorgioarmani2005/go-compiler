@@ -14,7 +14,7 @@ $(GRAMMAR).tab.c $(GRAMMAR).tab.h: $(GRAMMAR).y
 $(LEX).yy.c: $(LEX).l
 	flex $(LEX).l
 
-$(OUT): $(GRAMMAR).tab.c $(LEX).yy.c
+$(OUT): $(GRAMMAR).tab.c $(LEX).yy.c $(VM_FILE).cpp
 	g++ -o $(OUT) $(GRAMMAR).tab.c $(LEX).yy.c $(VM_FILE).cpp -lm
 
 test: $(OUT)

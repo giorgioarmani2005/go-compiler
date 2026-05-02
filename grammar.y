@@ -799,10 +799,8 @@ for_var_init
     ;
 for_comparison
     : %empty {
-        push_num_operation(0);
-        equal_operation();
-        jmp_equal_operation(for_label_ids.back() + 1);
         jmp_operation(for_label_ids.back() + 3);
+        label_operation(for_label_ids.back() + 2);
     }
     | logical_expression {
         push_num_operation(0);
@@ -813,7 +811,10 @@ for_comparison
     }
     ;
 for_post
-    : %empty
+    : %empty {
+        jmp_operation(for_label_ids.back());
+        label_operation(for_label_ids.back() + 3);
+    }
     | logical_assignment {
         jmp_operation(for_label_ids.back());
         label_operation(for_label_ids.back() + 3);

@@ -1,11 +1,10 @@
 package main
 
 func main() {
- var a, b, c = 1+1, 2+2, 3+3
+	var a int = 2
 
- for a<=10{
-  print(a)
-  a+=2
- }
-
+	for i := 0; ; i++ {
+		a *= 2
+		print(a)
+	}
 }

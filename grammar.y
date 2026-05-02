@@ -232,7 +232,8 @@ var_spec
     : identifier_list type {
         int last_variable_id = find_last_taken_id();
         for (int i = last_variable_id - $1; i <= last_variable_id; ++i) {
-            write_num_operation(i, 0);
+            push_num_operation(0);
+            write_reg_operation(i);
         }
     }
     | identifier_list type '=' expression_list {
@@ -776,26 +777,9 @@ for_token
         last_label += 4;
     }
     ;
+
 for_stmt
-    : for_token loop_block {
-        scopes.pop_back();
-        printf("Left scope\n");
-
-        jmp_operation($1 + 2);
-        label_operation($1 + 1);
-
-        for_label_ids.pop_back();
-    }
-    | for_token logical_expression loop_block {
-        scopes.pop_back();
-        printf("Left scope\n");
-
-        jmp_operation($1 + 2);
-        label_operation($1 + 1);
-
-        for_label_ids.pop_back();
-    }
-    | for_token for_var_init SEMICOLON for_comparison SEMICOLON for_post loop_block {
+    : for_token for_var_init SEMICOLON for_comparison SEMICOLON for_post loop_block {
         scopes.pop_back();
         printf("Left scope\n");
 
@@ -814,7 +798,12 @@ for_var_init
     }
     ;
 for_comparison
-    : %empty
+    : %empty {
+        push_num_operation(0);
+        equal_operation();
+        jmp_equal_operation(for_label_ids.back() + 1);
+        jmp_operation(for_label_ids.back() + 3);
+    }
     | logical_expression {
         push_num_operation(0);
         equal_operation();

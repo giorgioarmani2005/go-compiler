@@ -91,6 +91,15 @@ void and_operation() {
     fprintf(yyout, "AND\n");
 }
 
+void not_operation() {
+    fprintf(yyout, "NOT\n");
+}
+
+void and_not_operation() {
+    not_operation();
+    and_operation();
+}
+
 void lshift_operation() {
     fprintf(yyout, "LSHIFT\n");
 }
@@ -105,10 +114,6 @@ void logical_or_operation() {
 
 void logical_and_operation() {
     fprintf(yyout, "CMP AND\n");
-}
-
-void and_not_operation() {
-    fprintf(yyout, "CMP ANDNOT\n");
 }
 
 void equal_operation() {
@@ -405,10 +410,7 @@ unary_expr
     : primary_expr
     | '+' unary_expr
     | '-' unary_expr {
-        pop_operation();
-        push_num_operation(0);
-        push_reg_operation();
-        sub_operation();
+        not_operation();
     }
     | '^' unary_expr {
         push_num_operation(0xFFFFFFFF);
@@ -520,10 +522,7 @@ logical_unary_expr
     }
     | '+' logical_unary_expr
     | '-' logical_unary_expr {
-        pop_operation();
-        push_num_operation(0);
-        push_reg_operation();
-        sub_operation();
+        not_operation();
     }
     | '^' logical_unary_expr {
         push_num_operation(0xFFFFFFFF);

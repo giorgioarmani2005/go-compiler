@@ -6,6 +6,7 @@ lex.yy.c
 bytecode.asm
 
 /tests/*.go
+*.txt
 
 virtual_machine
 program

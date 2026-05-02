@@ -3,7 +3,6 @@
 #include <string>
 #include "virtual-machine.h"
 #include <map>
-
 // Helper functions
 bool has_label(std::string line)
 {
@@ -26,7 +25,7 @@ bool is_virtual_memory(std::string operand)
     {
         return true;
     }
-    std::cerr << "Error: Invalid virtual memory operand format: " << operand << std::endl;
+    std::cerr << "[!] Error: Invalid virtual memory operand format: " << operand << std::endl;
     return false;
 }
 
@@ -52,7 +51,7 @@ VirtualMachine::VirtualMachine(std::string path_to_asm)
     std::ifstream bytecode_file(path_to_asm);
     if (!bytecode_file.is_open())
     {
-        std::cerr << "Error: Could not open bytecode file: " << path_to_asm << std::endl;
+        std::cerr << "[!] Error: Could not open bytecode file: " << path_to_asm << std::endl;
         exit(1);
     }
 
@@ -124,7 +123,7 @@ void VirtualMachine::execute_action(int (*func)(int, int))
 {
     if (REG_SP.size() < 2)
     {
-        std::cerr << "Error: Binary instruction requires exactly 2 operands." << std::endl;
+        std::cerr << "[!] Error: Binary instruction requires exactly 2 operands." << std::endl;
         return;
     }
     int right = REG_SP.top();
@@ -141,7 +140,7 @@ void VirtualMachine::execute_action(bool (*func)(int, int))
 {
     if (REG_SP.size() < 2)
     {
-        std::cerr << "Error: logical instruction requires exactly 2 operands." << std::endl;
+        std::cerr << "[!] Error: logical instruction requires exactly 2 operands." << std::endl;
         return;
     }
     int right = REG_SP.top();
@@ -158,17 +157,17 @@ void VirtualMachine::execute_push()
 {
     if (REG_IP == nullptr)
     {
-        std::cerr << "Error: Instruction pointer is null." << std::endl;
+        std::cerr << "[!] Error: Instruction pointer is null." << std::endl;
         return;
     }
     if (REG_IP->operands.empty())
     {
-        std::cerr << "Error: PUSH instruction requires an operand." << std::endl;
+        std::cerr << "[!] Error: PUSH instruction requires an operand." << std::endl;
         return;
     }
     if (REG_IP->operands[0] == "ax" && REG_AX == nullptr)
     {
-        std::cerr << "Error: Accumulator register is null." << std::endl;
+        std::cerr << "[!] Error: Accumulator register is null." << std::endl;
         return;
     }
     int value = (REG_IP->operands[0] == "ax") ? *REG_AX : std::stoi(REG_IP->operands[0]);
@@ -179,17 +178,17 @@ void VirtualMachine::execute_pop()
 {
     if (REG_IP == nullptr)
     {
-        std::cerr << "Error: Instruction pointer is null." << std::endl;
+        std::cerr << "[!] Error: Instruction pointer is null." << std::endl;
         return;
     }
     if (REG_IP->operands.empty())
     {
-        std::cerr << "Error: POP instruction requires an operand." << std::endl;
+        std::cerr << "[!] Error: POP instruction requires an operand." << std::endl;
         return;
     }
     if (REG_SP.empty())
     {
-        std::cerr << "Error: Stack underflow on POP instruction." << std::endl;
+        std::cerr << "[!] Error: Stack underflow on POP instruction." << std::endl;
         return;
     }
 
@@ -201,7 +200,7 @@ void VirtualMachine::execute_pop()
     }
     else
     {
-        std::cerr << "Error: Unsupported POP operand: " << REG_IP->operands[0] << std::endl;
+        std::cerr << "[!] Error: Unsupported POP operand: " << REG_IP->operands[0] << std::endl;
     }
 }
 
@@ -209,12 +208,12 @@ void VirtualMachine::execute_print()
 {
     if (REG_IP == nullptr)
     {
-        std::cerr << "Error: Instruction pointer is null." << std::endl;
+        std::cerr << "[!] Error: Instruction pointer is null." << std::endl;
         return;
     }
     if (REG_IP->operands.empty())
     {
-        std::cerr << "Error: PRINT instruction requires an operand." << std::endl;
+        std::cerr << "[!] Error: PRINT instruction requires an operand." << std::endl;
         return;
     }
 
@@ -224,7 +223,7 @@ void VirtualMachine::execute_print()
     }
     else
     {
-        std::cerr << "Error: Unsupported PRINT operand: " << REG_IP->operands[0] << std::endl;
+        std::cerr << "[!] Error: Unsupported PRINT operand: " << REG_IP->operands[0] << std::endl;
     }
 }
 
@@ -310,7 +309,7 @@ void VirtualMachine::run()
         }
         else
         {
-            std::cerr << "Error: Unknown opcode: " << REG_IP->opcode << std::endl;
+            std::cerr << "[!] Error: Unknown opcode: " << REG_IP->opcode << std::endl;
         }
         REG_IP++;
     }
@@ -320,14 +319,14 @@ void VirtualMachine::execute_compare()
 {
     if (REG_SP.size() < 2)
     {
-        std::cerr << "Error: CMP instruction requires exactly 2 operands." << std::endl;
+        std::cerr << "[!] Error: CMP instruction requires exactly 2 operands." << std::endl;
         return;
     }
     // if(a<b): push a; push b
 
     if (REG_IP->operands.empty())
     {
-        std::cerr << "Error: CMP instruction requires a comparison operator operand." << std::endl;
+        std::cerr << "[!] Error: CMP instruction requires a comparison operator operand." << std::endl;
         return;
     }
     int right = REG_SP.top();
@@ -378,7 +377,7 @@ void VirtualMachine::execute_compare()
     }
     else
     {
-        std::cerr << "Error: Unsupported CMP operator: " << REG_IP->operands[0] << std::endl;
+        std::cerr << "[!] Error: Unsupported CMP operator: " << REG_IP->operands[0] << std::endl;
         return;
     }
 }
@@ -387,12 +386,12 @@ void VirtualMachine::execute_load()
 {
     if (REG_IP == nullptr)
     {
-        std::cerr << "Error: Instruction pointer is null." << std::endl;
+        std::cerr << "[!] Error: Instruction pointer is null." << std::endl;
         return;
     }
     if (REG_IP->operands.size() < 2)
     {
-        std::cerr << "Error: LOAD instruction requires an two operand." << std::endl;
+        std::cerr << "[!] Error: LOAD instruction requires an two operand." << std::endl;
         return;
     }
     if (REG_IP->operands[0] == "ax" && is_virtual_memory(REG_IP->operands[1]))
@@ -401,7 +400,7 @@ void VirtualMachine::execute_load()
     }
     else
     {
-        std::cerr << "Error: Unsupported LOAD operands: " << REG_IP->operands[0] << ", " << REG_IP->operands[1] << std::endl;
+        std::cerr << "[!] Error: Unsupported LOAD operands: " << REG_IP->operands[0] << ", " << REG_IP->operands[1] << std::endl;
     }
 }
 
@@ -409,19 +408,19 @@ void VirtualMachine::execute_write()
 {
     if (REG_IP == nullptr)
     {
-        std::cerr << "Error: Instruction pointer is null." << std::endl;
+        std::cerr << "[!] Error: Instruction pointer is null." << std::endl;
         return;
     }
     if (REG_IP->operands.empty())
     {
-        std::cerr << "Error: WRITE instruction requires an operand." << std::endl;
+        std::cerr << "[!] Error: WRITE instruction requires an operand." << std::endl;
         return;
     }
     if (is_virtual_memory(REG_IP->operands[0]) && REG_IP->operands[1] == "ax")
     {
         if (REG_AX == nullptr)
         {
-            std::cerr << "Error: Accumulator register is null." << std::endl;
+            std::cerr << "[!] Error: Accumulator register is null." << std::endl;
             return;
         }
         if (get_virtual_memory_address(REG_IP->operands[0]) > virtual_memory_variables.size())
@@ -433,7 +432,7 @@ void VirtualMachine::execute_write()
     }
     else
     {
-        std::cerr << "Error: Unsupported WRITE operands: " << REG_IP->operands[0] << ", " << REG_IP->operands[1] << std::endl;
+        std::cerr << "[!] Error: Unsupported WRITE operands: " << REG_IP->operands[0] << ", " << REG_IP->operands[1] << std::endl;
     }
 }
 
@@ -441,7 +440,7 @@ void VirtualMachine::execute_jump(bool (*condition)())
 {
     if (REG_IP->operands.empty())
     {
-        std::cerr << "Error: JUMP instruction requires a label operand." << std::endl;
+        std::cerr << "[!] Error: JUMP instruction requires a label operand." << std::endl;
         return;
     }
     std::string label = REG_IP->operands[0];
@@ -453,11 +452,3 @@ void VirtualMachine::execute_jump(bool (*condition)())
     }
 }
 
-int main()
-{
-
-    VirtualMachine vm("bytecode.asm");
-
-    vm.run();
-    return 0;
-}

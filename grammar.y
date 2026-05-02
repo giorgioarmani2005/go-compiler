@@ -13,10 +13,12 @@
 extern int yylex();
 extern int yyparse();
 
-void parsing_failure();
+void parsing_failure(const char *reason);
 
 extern FILE* yyin;
 extern FILE* yyout;
+
+int current_line = 1;
 
 int last_label = 0;
 
@@ -845,7 +847,7 @@ int variable_lookup(const std::string& name) {
         }
     }
     
-    parsing_failure();
+    parsing_failure("Cannot find variable");
 
     return -1;
 }
@@ -872,8 +874,10 @@ void yyerror(const char* s) {
     fprintf(stderr, "Ошибка: %s\n", s);
 }
 
-void parsing_failure() {
-    printf("Parsing failed in runtime\n");
+void parsing_failure(const char *reason) {
+    printf("Parsing failed in runtime on line %d\n", current_line);
+    printf("%s\n", reason);
+
     exit(0);
 }
 
@@ -911,7 +915,7 @@ int main(int argc, char* argv[]) {
         vm.run();
 
     } else {
-        printf("[!] Parsing failed.\n");
+        printf("[!] Parsing failed on line %d.\n", current_line);
     }
 
     fclose(input_file);

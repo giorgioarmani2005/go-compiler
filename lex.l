@@ -7,6 +7,9 @@ extern "C" {
 
 int asi_wrapper(int token);
 int recv_wrapper();
+
+extern int current_line;
+
 static int insert_semicolon = 0;
 static int prev_token = SEMICOLON;
 %}
@@ -26,7 +29,7 @@ NUMBER   {INTEGER}
 
 [ \r\t]+                    { /* игнорируем */ }
 
-\n                          { printf("NL\n"); return asi_wrapper(NL); }
+\n                          { current_line++; printf("NL\n"); return asi_wrapper(NL); }
 
 "package"                   { printf("%s\n", yytext); return asi_wrapper(PACKAGE); }
 "func"                      { printf("%s\n", yytext); return asi_wrapper(FUNC); }

@@ -5,5 +5,7 @@ grammar.tab.h
 lex.yy.c
 bytecode.asm
 
+/tests/*.go
+
 virtual_machine
 program

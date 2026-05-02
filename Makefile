@@ -2,6 +2,7 @@ LEX := lex
 GRAMMAR := grammar
 OUT := program
 TESTS_DIR := tests
+VM_FILE := virtual-machine
 
 .PHONY: all test clean
 
@@ -14,7 +15,7 @@ $(LEX).yy.c: $(LEX).l
 	flex $(LEX).l
 
 $(OUT): $(GRAMMAR).tab.c $(LEX).yy.c
-	g++ -o $(OUT) $(GRAMMAR).tab.c $(LEX).yy.c -lm
+	g++ -o $(OUT) $(GRAMMAR).tab.c $(LEX).yy.c $(VM_FILE).cpp -lm
 
 test: $(OUT)
 	@echo "Running tests..."; \
@@ -31,4 +32,4 @@ test: $(OUT)
 	done
 
 clean:
-	rm -f $(GRAMMAR).tab.c $(GRAMMAR).tab.h $(LEX).yy.c $(OUT)
+	rm -f $(GRAMMAR).tab.c $(GRAMMAR).tab.h $(LEX).yy.c $(OUT) $(VM_FILE)

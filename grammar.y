@@ -8,6 +8,8 @@
 #include <string>
 #include <map>
 
+#include "virtual-machine.h"
+
 extern int yylex();
 extern int yyparse();
 
@@ -884,22 +886,33 @@ int main(int argc, char* argv[]) {
 
     FILE* input_file = fopen(argv[1], "r");
     if (!input_file) {
-        fprintf(stderr, "Error: can't open file '%s'\n", argv[1]);
+        fprintf(stderr, "[!] Error: can't open file '%s'\n", argv[1]);
         return 1;
     }
     yyin = input_file;
 
     FILE* output_file = fopen(argv[2], "w");
     if (!input_file) {
-        fprintf(stderr, "Error: cant't open file '%s'\n", argv[2]);
+        fprintf(stderr, "[!] Error: cant't open file '%s'\n", argv[2]);
         return 1;
     }
     yyout = output_file;
 
     if (yyparse() == 0) {
-        printf("Parsing completed successfully!\n");
+        printf("[+] Parsing completed successfully!\n");
+
+        fclose(yyout);//because virtual machine will read the file, so we need to close it here
+
+        printf("[+] Running virtual machine...\n");
+
+        std::string bytecode_file_name = argv[2];
+
+        VirtualMachine vm(bytecode_file_name);
+
+        vm.run();
+
     } else {
-        printf("Parsing failed.\n");
+        printf("[!] Parsing failed.\n");
     }
 
     fclose(input_file);

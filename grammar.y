@@ -104,7 +104,7 @@ void logical_or_operation() {
 }
 
 void logical_and_operation() {
-    fprintf(yyout, "CMPLAND\n");
+    fprintf(yyout, "CMP AND\n");
 }
 
 void and_not_operation() {
@@ -544,7 +544,7 @@ logical_operand
     | NUMBER {
         push_num_operation($1);
     }
-    | '(' expression ')'
+    | '(' logical_expression ')'
     ;
 
 assignment
